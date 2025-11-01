@@ -9,9 +9,15 @@ import sys
 import os
 
 
+log_file = Path(__file__).parent / "sorter.log"
+
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s"
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(log_file, mode="a", encoding="utf-8"),
+        logging.StreamHandler(sys.stdout)
+    ]
 )
 logging.info("Логування ініціалізовано успішно.")
 
