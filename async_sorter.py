@@ -99,4 +99,9 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+        sys.exit(0)
+    except Exception as e:
+        logging.exception(f"Непередбачена помилка виконання: {e}")
+        sys.exit(1)
