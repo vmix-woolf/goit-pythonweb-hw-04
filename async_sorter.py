@@ -52,10 +52,7 @@ async def init_paths(source: str, output: str) -> tuple[Path, Path]:
 
 # --- Асинхронна функція для обходу директорії ---
 async def read_folder(source: Path, output: Path):
-    """Рекурсивно обходить усі файли у вихідній папці."""
     tasks = []
-
-    # Викликаємо os.scandir у окремому потоці
     entries = await asyncio.to_thread(lambda: list(os.scandir(source)))
 
     for entry in entries:
@@ -63,17 +60,36 @@ async def read_folder(source: Path, output: Path):
             sub_source = source / entry.name
             await read_folder(sub_source, output)
         else:
-            logging.info(f"Знайдено файл: {entry.name}")
+            file_path = source / entry.name
+            tasks.append(asyncio.create_task(copy_file(file_path, output)))
 
     if tasks:
         await asyncio.gather(*tasks)
+
+async def copy_file(file_path: Path, output_dir: Path):
+    try:
+        ext = file_path.suffix.lower().lstrip(".") or "no_ext"
+        target_folder = output_dir / ext
+
+        if not await aiofiles.ospath.exists(target_folder):
+            await aiofiles.os.mkdir(target_folder)
+
+        target_path = target_folder / file_path.name
+
+        async with aiofiles.open(file_path, "rb") as src, aiofiles.open(target_path, "wb") as dst:
+            while chunk := await src.read(1024 * 64):
+                await dst.write(chunk)
+
+        logging.info(f"Файл '{file_path.name}' скопійовано до '{target_folder}'.")
+    except Exception as e:
+        logging.error(f"Помилка копіювання файлу '{file_path}': {e}", exc_info=True)
 
 
 async def main():
     args = parse_arguments()
     source_path, output_path = await init_paths(args.source, args.output)
     await read_folder(source_path, output_path)
-    print("Step 4: Читання вихідної папки завершено.")
+    print("Step 5: Асинхронне копіювання файлів завершено.")
 
 
 if __name__ == "__main__":
